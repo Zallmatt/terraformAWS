@@ -11,16 +11,13 @@ from tensorflow.keras.layers import Embedding, LSTM, Dense, SpatialDropout1D
 from tensorflow.keras.utils import to_categorical
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-
 from dataSet import DataSet
 import tensorflow as tf
 from tensorflow.keras import backend as K
-
 import matplotlib.pyplot as plt
-import seaborn as sns
+
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_curve, auc, precision_recall_curve
 
 if __name__ == "__main__":
@@ -92,10 +89,20 @@ if __name__ == "__main__":
     modelo.add(Dense(4, activation='softmax'))  # Cambiada a softmax
 
     # El modelo se compila con pérdida de entropía cruzada categórica y el optimizador RMSprop. Luego, se entrena el modelo con las secuencias preprocesadas y las etiquetas codificadas.
-    modelo.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=[f1_score_custom])
+    modelo.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['accuracy', f1_score_custom])
 
     # Entrenar el modelo
-    modelo.fit(secuencias_padded, etiquetas_one_hot, epochs=50, batch_size=32, validation_split=0.2)
+    historia = modelo.fit(secuencias_padded, etiquetas_one_hot, epochs=50, batch_size=32, validation_split=0.2)
+
+    # Graficar la historia del entrenamiento solo con la línea azul
+    epochs = range(1, len(historia.history['accuracy']) + 1)
+    plt.figure(figsize=(12, 6))
+    plt.plot(epochs, historia.history['accuracy'], 'b', label='Training accuracy')
+    plt.title('Training accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.show()
     
     # Evaluación del modelo
     y_pred = modelo.predict(secuencias_padded)

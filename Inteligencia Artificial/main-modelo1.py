@@ -18,6 +18,7 @@ from nltk.tokenize import word_tokenize
 from dataSet import DataSet
 import tensorflow as tf
 from tensorflow.keras import backend as K
+import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 
@@ -84,16 +85,26 @@ if __name__ == "__main__":
     # relu y una capa densa con activación softmax para la clasificación
     modelo = Sequential()
     modelo.add(Embedding(input_dim=tamano_vocabulario, output_dim=dimension_embedding, input_length=longitud_maxima))
-    modelo.add(SpatialDropout1D(0.2))
+    modelo.add(SpatialDropout1D(0.1))
     modelo.add(LSTM(unidades_lstm, dropout=0.2, recurrent_dropout=0.2))
     modelo.add(Dense(64, activation='relu'))  # Capa adicional
-    modelo.add(Dense(4, activation='sigmoid'))  # Cambiada a sigmoid
+    modelo.add(Dense(4, activation='softmax'))  # Cambiada a softmax
 
     # El modelo se compila con pérdida de entropía cruzada categórica y el optimizador Adam. Luego, se entrena el modelo con las secuencias preprocesadas y las etiquetas codificadas.
-    modelo.compile(loss='categorical_crossentropy', optimizer='adam', metrics=[f1_score])
+    modelo.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     # Entrenar el modelo
-    modelo.fit(secuencias_padded, etiquetas_one_hot, epochs=50, batch_size=32, validation_split=0.2)
+    historia = modelo.fit(secuencias_padded, etiquetas_one_hot, epochs=50, batch_size=32, validation_split=0.3)
+    
+    # Graficar la historia del entrenamiento solo con la línea azul
+    epochs = range(1, len(historia.history['accuracy']) + 1)
+    plt.figure(figsize=(12, 6))
+    plt.plot(epochs, historia.history['accuracy'], 'b', label='Training accuracy')
+    plt.title('Training accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.show()
 
     def recomendar_actividad(emocion):
         # Filtrar emoción
@@ -170,4 +181,3 @@ if __name__ == "__main__":
         clear.click(lambda: None, None, chatbot, queue=False)
 
     demo.launch(share=True)
-

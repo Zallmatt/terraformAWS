@@ -13,11 +13,14 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-from dataSet import DataSet
+from load_bucket import DataSet
 
 from sklearn.metrics import pairwise
 import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_curve, auc, precision_recall_curve
+
+
 
 if __name__ == "__main__":   
 
@@ -73,16 +76,6 @@ if __name__ == "__main__":
     # Entrenar el modelo
     historia = modelo.fit(secuencias_padded, etiquetas_one_hot, epochs=50, batch_size=32, validation_split=0.2)
     
-    # Graficar solo la historia del entrenamiento
-    epochs = range(1, len(historia.history['accuracy']) + 1)
-    plt.figure(figsize=(12, 6))
-    plt.plot(epochs, historia.history['accuracy'], 'b', label='Training accuracy')
-    plt.title('Training accuracy')
-    plt.xlabel('Epochs')
-    plt.ylabel('Accuracy')
-    plt.legend()
-    plt.show()
-    
     # Evaluación del modelo
     y_pred = modelo.predict(secuencias_padded)
     y_pred_classes = np.argmax(y_pred, axis=1)
@@ -99,6 +92,57 @@ if __name__ == "__main__":
     print(f"Accuracy: {accuracy}")
     print(f"F1-Score: {f1}")
     
+    # Curva ROC y AUC para cada clase
+    fpr = {}
+    tpr = {}
+    roc_auc = {}
+    n_classes = etiquetas_one_hot.shape[1]
+
+    for i in range(n_classes):
+        fpr[i], tpr[i], _ = roc_curve(etiquetas_one_hot[:, i], y_pred[:, i])
+        roc_auc[i] = auc(fpr[i], tpr[i])
+
+    # Graficar la curva ROC para cada clase
+    plt.figure()
+    lw = 2
+    colors = ['aqua', 'darkorange', 'cornflowerblue', 'red']
+
+    for i, color in zip(range(n_classes), colors):
+        plt.plot(fpr[i], tpr[i], color=color, lw=lw,
+                 label='ROC curve of class {0} (area = {1:0.2f})'
+                 ''.format(i, roc_auc[i]))
+
+    plt.plot([0, 1], [0, 1], 'k--', lw=lw)
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic (ROC) Curve')
+    plt.legend(loc="lower right")
+    plt.show()
+
+    # Curva Precision-Recall para cada clase
+    precision = {}
+    recall = {}
+    pr_auc = {}
+
+    for i in range(n_classes):
+        precision[i], recall[i], _ = precision_recall_curve(etiquetas_one_hot[:, i], y_pred[:, i])
+        pr_auc[i] = auc(recall[i], precision[i])
+
+    # Graficar la curva Precision-Recall para cada clase
+    plt.figure()
+    for i, color in zip(range(n_classes), colors):
+        plt.plot(recall[i], precision[i], color=color, lw=lw,
+                 label='Precision-Recall curve of class {0} (area = {1:0.2f})'
+                 ''.format(i, pr_auc[i]))
+
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve')
+    plt.legend(loc="best")
+    plt.show()
+
     # Mapeo de clases
     mapeo_clases = dict(zip(codificador_etiquetas.classes_, codificador_etiquetas.transform(codificador_etiquetas.classes_)))
 
@@ -146,7 +190,7 @@ if __name__ == "__main__":
             indice = similitudes[0].tolist().index(max_similitud)
             return respuestas[indice]
         else:
-            return None
+                return None
         
     # Esta función utiliza primero el sistema experto para encontrar una respuesta. Si no encuentra una respuesta adecuada, predice la emoción y recomienda una actividad basada en la emoción detectada. 
     def respuesta_chatbot(mensaje, historial):
